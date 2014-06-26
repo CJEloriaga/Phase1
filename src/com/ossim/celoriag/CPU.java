@@ -124,13 +124,6 @@ public class CPU
 				++lineNum;
 			}
 		}
-		/*
-		System.out.println("Register A: " + regis[0]);
-		System.out.println("Register B: " + regis[1]);
-		System.out.println("Register C: " + regis[2]);
-		System.out.println("Register D: " + regis[3]);
-		System.out.println("Accumulator: " + regis[4]);
-		*/
 	}
 	
 	//methods for add/sub/mul/div/rcl/sto/_wt/_rd/_wr
