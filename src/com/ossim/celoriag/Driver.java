@@ -17,26 +17,26 @@ public class Driver
 		nHDD.load_to_disk(nHDD);
 		
 		//fifo scheduling, load to RAM, print
-		System.out.println("FiFo");
+		/*System.out.println("FiFo");
 		schedule.OrderFiFo(nHDD, nRAM);
-		//nRAM.printRAM();
-		
-		//rQ takes in RAM and executes jobs on CPU
 		schedule.toQueue(nRAM, nCPU);
 		nCPU.execute();
-		//nCPU.printRQ();
-		System.out.println();
+		nCPU.printWQ();
+		System.out.println();*/
 		
 		//sjf scheduling, load to RAM, print
-		System.out.println("SJF");
+		/*System.out.println("SJF");
 		schedule.OrderSJF(nHDD, nRAM);
-		//nRAM.printRAM();
-		System.out.println();
+		schedule.toQueue(nRAM, nCPU);
+		nCPU.execute();
+		nCPU.printWQ();
+		System.out.println();*/
 		
 		//priority scheduling, load to RAM, print
 		System.out.println("Priority");
 		schedule.OrderPriority(nHDD, nRAM);
-		//nRAM.printRAM();
+		schedule.toQueue(nRAM, nCPU);
+		nCPU.execute();
 		System.out.println();
 		
 	}

@@ -1,162 +1,164 @@
 package com.ossim.celoriag;
 
+/*
+ * @author Christian Eloriaga
+ */
+
 import java.util.*;
 
 public class CPU 
 {
-	private int [] regis = {1,3,5,7,9};
 	private ArrayList<PCB> rQueue = new ArrayList<PCB>(); 
 	private ArrayList<PCB> wQueue = new ArrayList<PCB>();
 	private ArrayList<PCB> ioQueue = new ArrayList<PCB>();
+	private Core c1 = new Core();
+	private Core c2 = new Core();
+	private Core c3 = new Core();
+	private Core c4 = new Core();
+	private Core c5 = new Core();
+	private Core c6 = new Core();
+	private Core c7 = new Core();
+	private Core c8 = new Core();
 	
-	public CPU(){}
+	private ArrayList<Core> coreList = new ArrayList<Core>();
+	
+	
+	public CPU() 
+	{
+		coreList.add(c1);
+		coreList.add(c2);
+		coreList.add(c3);
+		coreList.add(c4);
+		coreList.add(c5);
+		coreList.add(c6);
+		coreList.add(c7);
+		coreList.add(c8);
+	}
+	
+	public void stablizeQueues()
+	{
+		for(int i = 0; i < ioQueue.size(); i++)
+		{
+			if(ioQueue.contains(ioQueue.get(i)))
+			{
+				for(int j = i+1; j < ioQueue.size(); j++)
+				{
+					if(ioQueue.get(j) == ioQueue.get(i))
+					{
+						ioQueue.remove(j);
+						break;
+					}
+				}
+			}
+		}
+	}
 	
 	public void execute()
 	{
-		//basic local variables
-		PCB tempPCB;
-		Job tempJob = new Job();
-		int reg1, reg2, wildcard;
-		int lineNum = 0;
-		String inst, qString;
-		qString = "";
+		long runT = System.currentTimeMillis();
 		
-		//HashMap to convert characters to integers
-		final Map<Character, Integer> map;
-		map = new HashMap<Character, Integer>();  
-        map.put('A', 0);
-        map.put('B', 1);
-        map.put('C', 2);
-        map.put('D', 3);
-		
-        //While there are jobs in queue
-		while(! rQueue.isEmpty())
+		for(int i = 0; i < rQueue.size(); ++i)
 		{
-			/*
-			//decrement wait time for wait queue
-			for(int i = 0; i < wQueue.size(); ++i)
-			{
-				wQueue.get(i).decrementW();
+			rQueue.get(i).setRunT(System.currentTimeMillis());
+		}
+        //While there are jobs in queue
+		while(! rQueue.isEmpty() || ! wQueue.isEmpty() || ! ioQueue.isEmpty()
+				|| c1.isActive == true || c2.isActive == true || c3.isActive == true ||
+				c4.isActive == true || c5.isActive == true || c6.isActive == true ||
+				c7.isActive == true || c8.isActive == true)
+		{
+			stablizeQueues();
+			//decrement counters on wQueue/ioQueue
+			for(int i = 0; i < wQueue.size(); ++i) 
+			{ 
+				if(wQueue.get(i).getWait() > 0)
+				{
+					wQueue.get(i).decrementW();
+				}
 			}
 			
-			//decrement IO time for IO;
-			for(int i = 0; i < ioQueue.size(); ++i)
-			{
-				ioQueue.get(i).decrementIO();
+			//decrement counter on io. If 0, move to wQueue
+			for(int i = 0; i < ioQueue.size(); ++i) 
+			{ 
+				if(ioQueue.get(i).getIO() > 0)
+				{
+					ioQueue.get(i).decrementIO();
+					
+					if(ioQueue.get(i).getIO() == 0)
+					{
+						ioQueue.get(i).setWaitT(System.currentTimeMillis());
+						wQueue.add(ioQueue.get(i));
+						ioQueue.remove(i);
+					}
+				}
 			}
 			
 			//wQueue takes priority if possible
 			if(! wQueue.isEmpty())
 			{
-				tempPCB = wQueue.get(0);
-				if(tempPCB.getWait() == 0)
+				for(int i = 0; i < wQueue.size(); ++i)
 				{
-					tempJob = tempPCB.getJob();
-					lineNum = tempPCB.getLine();
+					if(wQueue.get(i).getWait() <= 0)
+					{
+						for(int j = 0; j < coreList.size()/2; ++j)
+						{
+							if(coreList.get(j).isActive() == false)
+							{
+								//wQueue.get(j).averageTime(System.currentTimeMillis());
+								coreList.get(j).fetch(wQueue.get(j));
+								wQueue.remove(i);
+							}
+						}
+					}
+					else 
+						wQueue.get(i).decrementW();
 				}
 			}
-			*/
-			//else // take the first job in rQueue
-			//{
-				tempPCB = rQueue.get(0);
-				rQueue.remove(0);
-				tempJob = tempPCB.getJob();
-			//}
+			else if(! rQueue.isEmpty())//take the first job in rQueue if necessary
+			{
+				for(int i = 0; i < coreList.size()/2; ++i)
+				{
+					if(coreList.get(i).isActive() == false)
+					{
+						coreList.get(i).fetch(rQueue.get(0));
+						rQueue.remove(0);
+					}
+				}
+			}
 			
 			//execute instructions
-			for(int i = lineNum; i < tempJob.getList().size(); ++i)
+			for(int i = 0; i < coreList.size()/2; ++i)
 			{
-				qString = tempJob.iList.get(0);
-				qString = qString.replaceAll("\\s", "");
-				String [] splitter = qString.split(",");
+				coreList.get(i).run();
 				
-				//if LineNum doesn't already exist, initialize to 0
-				if(lineNum == 0);
+				if(coreList.get(i).hasWait() == true)
 				{
-					lineNum = Integer.parseInt(splitter[0]);
+					if(ioQueue.contains(coreList.get(i).retPCB()))
+					{
+						ioQueue.remove(coreList.get(i).retPCB());
+					}
+					wQueue.add(coreList.get(i).retPCB());
+					coreList.get(i).resetWait();
 				}
-				
-				//read in from splitter into variables for instructions/regs
-				inst = splitter[1];
-				System.out.println(inst);
-				reg1 = map.get(splitter[2].charAt(0));
-				reg2 = map.get(splitter[3].charAt(0));
-				wildcard = Integer.parseInt(splitter[4]);
-				
-				//check for instruction, act accordingly
-				if(inst == "add") { add(reg1, reg2, wildcard); }
-				else if(inst == "sub") { sub(reg1, reg2, wildcard); }
-				else if(inst == "mul") { mul(reg1, reg2, wildcard); }
-				else if(inst == "div") { div(reg1, reg2, wildcard); }
-				else if(inst == "rcl") { rcl(reg1, reg2, wildcard); }
-				
-				/*else if(inst == "_wt") 
-				{ 
-					_wt(tempPCB, lineNum, wildcard); 
-					break;
-				}
-				
-				else if(inst == "_wr") 
+				else if(coreList.get(i).hasIO() == true)
 				{
-					_wr(tempPCB, lineNum, wildcard);
-					break;
+					if(wQueue.contains(c1.retPCB()))
+					{
+						wQueue.remove(c1.retPCB());
+					}
+					ioQueue.add(c1.retPCB());
+					c1.resetIO();
 				}
-				else if(inst == "_rd") 
-				{
-					_rd(tempPCB, lineNum, wildcard);
-					break;
-				}
-				else if(inst == "sto") 
-				{
-					sto(reg1, reg2);
-					break;
-				}*/
-				
-				if(lineNum == tempJob.getList().size())
-				{
-					System.out.println("Job: " + tempJob.getID());
-					System.out.println("Register A: " + regis[0]);
-					System.out.println("Register B: " + regis[1]);
-					System.out.println("Register C: " + regis[2]);
-					System.out.println("Register D: " + regis[3]);
-					System.out.println("Accumulator: " + regis[4]);
-				}
-				++lineNum;
 			}
 		}
-	}
-	
-	//methods for add/sub/mul/div/rcl/sto/_wt/_rd/_wr
-	public void add(int r1, int r2, int acc) { regis[4] += regis[r1] + regis[r2]; }
-	public void sub(int r1, int r2, int acc) { regis[4] += regis[r1] - regis[r2]; }
-	public void mul(int r1, int r2, int acc) { regis[4] += regis[r1] * regis[r2]; }
-	public void div(int r1, int r2, int acc) { regis[4] += regis[r1] / regis[r2]; }
-	public void rcl(int r1, int r2, int acc) { regis[4] += regis[r1] << regis[r2]; }
-	
-	public void _wt(PCB p, int line, int wait)
-	{
-		p.setLine(line);
-		p.setWait(wait);
-		wQueue.add(p);
-	}
-	
-	public void _wr(PCB p, int line, int io)
-	{
-		p.setLine(line);
-		p.setIO(io);
-		ioQueue.add(p);
-	}
-	
-	public void _rd(PCB p, int line, int io)
-	{
-		p.setLine(line);
-		p.setIO(io);
-		ioQueue.add(p);
-	}
-	
-	public void sto(int r1, int r2)
-	{
 		
+		//print out total time to run all programs
+		System.out.println("Run Time: " + (System.currentTimeMillis() - runT));
+
+		for(int i = 0; i < coreList.size(); ++i)
+		{
+			coreList.get(i).reset();
+		}
 	}
 	
 	//initialize the rQueue with all jobs in RAM
@@ -179,6 +181,22 @@ public class CPU
 			{
 				System.out.println(tempJob.iList.get(j));
 			}
+		}
+	}
+	
+	//test to check which values are in the wQueue
+	public void printWQ()
+	{
+		for(int i = 0; i < wQueue.size(); ++i)
+		{
+			Job tempJob = wQueue.get(i).getJob();
+			System.out.println("ID: " + tempJob.getID());
+			/*System.out.println("Priority: " + tempJob.getPri());
+			System.out.println("Number of Instructions: " + tempJob.getJobs());
+			for(int j = 0; j < tempJob.getJobs(); ++j)
+			{
+				System.out.println(tempJob.iList.get(j));
+			}*/
 		}
 	}
 }
